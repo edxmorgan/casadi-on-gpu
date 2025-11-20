@@ -99,7 +99,7 @@ __device__ void device_fk_eval(
 Example kernel:
 
 ```cpp
-fk_kernel_many<<<blocks, threads>>>(d_q_all, d_p1, d_p2, d_out_all, N);
+fk_kernel<<<blocks, threads>>>(d_q_all, d_p1, d_p2, d_out_all, N);
 cudaDeviceSynchronize();
 ```
 
