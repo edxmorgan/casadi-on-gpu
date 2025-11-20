@@ -1,7 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <cuda_runtime.h>
-#include "fk_wrapper.cuh"
+#include "device_fk_wrapper.cuh"
 
 
 int main() {
