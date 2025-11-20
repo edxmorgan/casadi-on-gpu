@@ -132,6 +132,7 @@ mkdir build
 cd build
 cmake ..
 make -j8
+./run_casadi_gpu
 ```
 
 ---
