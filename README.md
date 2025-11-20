@@ -38,7 +38,7 @@ This creates `fk_alpha.h` and `fk_alpha.c`.
 
 ## **3. Patch the Code for CUDA**
 
-### **Header: rename `fk_alpha.h` to `fk_alpha.cuh`**
+### **Header (`fk_alpha.h`) → rename to `fk_alpha.cuh`**
 
 Add safe CUDA qualifiers so the header works on both host and device.
 
@@ -50,7 +50,7 @@ Add safe CUDA qualifiers so the header works on both host and device.
 __device__ int fkeval(const casadi_real** arg, casadi_real** res, ...);
 ```
 
-### **Source: rename `fk_alpha.c` to `fk_alpha.cu`**
+### **Source (`fk_alpha.c`) → rename to `fk_alpha.cu`**
 
 Mark all functions that run on the GPU.
 
