@@ -4,9 +4,9 @@
   <img src="demo.gif" alt="80000 evaluations of forward kinematics" width="6000">
 </p>
 
-A minimal example that shows how to take CasADi generated C code, patch it so it can run inside CUDA kernels, and evaluate it directly on the GPU. The demo above runs a 4-DOF forward kinematics for **N = 80000** different joint configurations in parallel within a few milliseconds.
+A minimal example that shows how to take CasADi generated C code, patch it so it can run inside CUDA kernels, and evaluate it directly on the GPU. The demo above runs a 4-DOF forward kinematics for **N = 80000** different joint configurations in parallel in under 3 milliseconds.
 
-This approach makes it possible to run forward kinematics, dynamics, or any other CasADi symbolic function on thousands of samples at very high speed.
+This makes it possible to run forward kinematics, dynamics, or any other CasADi symbolic function on thousands of samples at very high speed.
 
 This is not a library. It is a small template that you can copy when you want CasADi functions to run on the GPU.
 
