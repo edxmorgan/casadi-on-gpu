@@ -1,14 +1,17 @@
 # **casadi-on-gpu**
 
 <p align="center">
-  <img src="demo.gif" alt="80000 evaluations of forward kinematics" width="600">
+  <img src="demo.gif" alt="80000 evaluations of forward kinematics" width="6000">
 </p>
 
-A minimal example that shows how to take CasADi generated C code, patch it so it can run inside CUDA kernels, and evaluate it directly on the GPU. This approach makes it possible to run forward kinematics or dynamics or any other CasADi symbolic function on thousands of samples at very high speed.
+A minimal example that shows how to take CasADi generated C code, patch it so it can run inside CUDA kernels, and evaluate it directly on the GPU. The demo above runs forward kinematics for **N = 80000** different joint configurations in parallel within a few milliseconds.
+
+This approach makes it possible to run forward kinematics, dynamics, or any other CasADi symbolic function on thousands of samples at very high speed.
 
 This is not a library. It is a small template that you can copy when you want CasADi functions to run on the GPU.
 
 ---
+
 
 ## **Workflow Overview**
 
@@ -152,7 +155,3 @@ make -j8
 ```
 
 ---
-
-## **Why Use This**
-
-CasADi produces very fast C code but runs only on the CPU. Many robotics and control algorithms need thousands of FK or dynamics evaluations. GPUs can process these evaluations in parallel. This project provides a clear template for running CasADi functions directly inside CUDA kernels with minimal patching.
