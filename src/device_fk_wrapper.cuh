@@ -13,7 +13,7 @@
 #include <cuda_runtime.h>
 
 extern "C" {
-#include "fk_alpha.h"   // defines casadi_real, casadi_int, fkeval_*
+#include "fk_alpha.cuh"   // defines casadi_real, casadi_int, fkeval_*
 }
 
 // Device helper that calls CasADi FK
