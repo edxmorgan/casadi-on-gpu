@@ -39,7 +39,7 @@ This produces:
 
 ### **Header (`fk_alpha.h`) → rename to `fk_alpha.cuh`**
 
-Add a safe qualifier so the header works in CUDA.
+Add a safe qualifier so the header works in CUDA and regular C files.
 
 ```c
 #ifndef __CUDACC__
