@@ -4,18 +4,17 @@
   <img src="demo.gif" alt="80000 evaluations of forward kinematics" width="600">
 </p>
 
-This project shows how to take a symbolic CasADi function, generate C code, adapt it for CUDA, and run it directly on the GPU using `__device__` kernels. This makes heavy forward kinematics, dynamics, or optimization workloads much faster, especially when evaluating many candidates in parallel.
+A minimal, practical example showing how to take a CasADi generated C function, patch it for CUDA, and run it directly on the GPU. This enables extremely fast parallel evaluation of forward kinematics, dynamics, or any other CasADi symbolic function on thousands of candidates at once.
 
-It shows how to patch the codegen output so it becomes CUDA compatible, how to wrap the function for device side execution, and how to launch batched evaluations directly on the GPU. The goal is not to provide a full library, but to give a clean minimal example that users can copy, adapt, and extend when they need high speed casadi function evaluations running in parallel on the GPU.
+This is **not** a library, but a clean template you can copy and adapt whenever you want CasADi functions to run inside CUDA kernels.
 
 ---
-
 
 ## **Workflow Overview**
 
 ### **1. Create CasADi Function in Python**
 
-Generate your casadi function as usual:
+Generate your CasADi function as usual:
 
 ```python
 fk = ca.Function("fkeval", [q, params1, params2], [output])
@@ -39,11 +38,11 @@ This produces:
 
 ---
 
-### **3. Make the Code CUDA Friendly**
+## **3. Patch the Code for CUDA**
 
-#### **Header (`fk_alpha.h`)**
+### **Header (`fk_alpha.h`)**
 
-Add safe CUDA qualifiers:
+Add safe CUDA qualifiers so the header works on both host and device:
 
 ```c
 #ifndef __CUDACC__
@@ -53,12 +52,12 @@ Add safe CUDA qualifiers:
 __device__ int fkeval(const casadi_real** arg, casadi_real** res, ...);
 ```
 
-#### **Source (`fk_alpha.c`)**
+### **Source (`fk_alpha.c`) → rename to `fk_alpha.cu`**
 
-Rename to `fk_alpha.cu` and tag key functions:
+Mark all functions called inside the CasADi kernel as device code:
 
 ```c
-__device__ casadi_real casadi_sq(casadi_real x) { return x*x; }
+__device__ casadi_real casadi_sq(casadi_real x) { return x * x; }
 
 static __device__
 int casadi_f0(...) { ... }
@@ -67,15 +66,16 @@ __device__
 int fkeval(...) { return casadi_f0(...); }
 ```
 
-All other functions non standard function used in casadi_f0 should be __device__ qualified. Everything else can remain on CPU only.
+Any helper functions used by `casadi_f0()` must also be tagged `__device__`.
+Everything else can remain CPU only.
 
 ---
 
-## **4. Write a CUDA Wrapper**
+## **4. Device Wrapper**
 
 `device_fk_eval.cuh`:
 
-```c++
+```cpp
 __device__ void device_fk_eval(
     const casadi_real* q,
     const casadi_real* p1,
@@ -83,9 +83,9 @@ __device__ void device_fk_eval(
     casadi_real* out
 ) {
     const casadi_real* arg_local[3] = { q, p1, p2 };
-    casadi_real* res_local[1] = { out };
+    casadi_real* res_local[1]       = { out };
 
-    casadi_int iw[1];
+    casadi_int  iw[1];
     casadi_real w[1];
 
     fkeval(arg_local, res_local, iw, w, 0);
@@ -94,33 +94,36 @@ __device__ void device_fk_eval(
 
 ---
 
-## **5. Run Thousands in Parallel**
+## **5. Evaluate Thousands in Parallel**
 
-`main.cu` example:
-```c++
+Example kernel:
+
+```cpp
 fk_kernel_many<<<blocks, threads>>>(d_q_all, d_p1, d_p2, d_out_all, N);
 cudaDeviceSynchronize();
 ```
 
+Each GPU thread processes one candidate configuration.
+
 ---
 
-## **Example Project**
+## **Project Structure**
 
 ```
 casadi-on-gpu/
 │
 ├── src/
-│   ├── fk_alpha.cu          # CasADi generated and patched
+│   ├── fk_alpha.cu          # CasADi-generated and CUDA patched
 │   ├── fk_alpha.h
 │   ├── device_fk_eval.cuh   # Device wrapper
-│   ├── main.cu              # Example usage
+│   ├── main.cu              # Example CUDA usage
 │
 └── CMakeLists.txt
 ```
 
 ---
 
-## **Build**
+## **Build and Run**
 
 ```bash
 mkdir build
@@ -132,8 +135,9 @@ make -j8
 
 ---
 
-## **Why This Is Useful**
+## **Why Use This**
 
-* CasADi produces efficient C code but normally runs on CPU only.
-* Many robotics tasks need evaluating FK or Jacobians hundreds or thousands of times.
-* GPUs let you do that in parallel.
+* CasADi C code is fast but limited to the CPU.
+* Robotics and control algorithms often require huge batches of FK or dynamics evaluations.
+* CUDA makes these workloads massively parallel.
+* The method here lets you drop CasADi functions straight onto the GPU with minimal changes.
