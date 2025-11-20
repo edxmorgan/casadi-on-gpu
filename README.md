@@ -116,6 +116,7 @@ The sizes of these arrays are provided in the generated header
 For this FK example they are both zero, so we pass small dummy arrays
 `mem` is a memory slot index used when CasADi maintains internal state In this FK example it does nothing, so 0 is fine
 If your function has non zero workspace sizes, allocate arrays of the required sizes inside the wrapper.
+
 ---
 
 ## **5. Evaluate Many Samples in Parallel**
