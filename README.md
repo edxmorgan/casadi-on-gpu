@@ -156,7 +156,7 @@ fk_kernel<<<blocks, threads>>>(
     N
 );
 
-cudaDeviceSynchronize();
+cudaDeviceSynchronize(); // It blocks until every kernel and memory operation is completed
 ```
 
 Each thread performs one forward kinematics call.
