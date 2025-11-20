@@ -20,7 +20,7 @@ fk = ca.Function("fkeval", [q, params1, params2], [output])
 
 ---
 
-### **2. Generate C Code**
+### **2. Generate C Code with header & float as casadi_real**
 
 ```python
 cg = ca.CodeGenerator("fk_alpha", {"with_header": True, "casadi_real": "float"})
