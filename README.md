@@ -4,17 +4,10 @@ High speed CasADi function execution on the GPU using CUDA kernels.
 
 This project shows how to take a symbolic CasADi function, generate C code, adapt it for CUDA, and run it directly on the GPU using `__device__` kernels. This makes heavy forward kinematics, dynamics, or optimization workloads much faster, especially when evaluating many candidates in parallel.
 
----
-
-## **Features**
-
-* Run any CasADi-generated model inside a CUDA kernel.
-* Simple device wrapper around CasADi's low level C API.
-* Batch evaluation support for thousands of samples in parallel.
-* No changes needed in your CasADi Python code, only a small patch after codegen.
-* Clean CMake setup for building mixed CUDA plus CasADi C code.
+It shows how to patch the codegen output so it becomes CUDA compatible, how to wrap the function for device side execution, and how to launch batched evaluations directly on the GPU. The goal is not to provide a full library, but to give a clean minimal example that users can copy, adapt, and extend when they need high speed casadi function evaluations running in parallel on the GPU.
 
 ---
+
 
 ## **Workflow Overview**
 
