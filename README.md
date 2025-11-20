@@ -12,7 +12,7 @@ This is not a library. It is a minimal template you can copy whenever you want C
 
 ## **Workflow Overview**
 
-### **1. Create a CasADi Function in Python**
+### **1. Create a CasADi Function in Python or Matlab**
 
 ```python
 fk = ca.Function("fkeval", [q, params1, params2], [output])
