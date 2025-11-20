@@ -1,5 +1,9 @@
 # **casadi-on-gpu**
 
+<p align="center">
+  <img src="demo.gif" alt="80000 evaluations of forward kinematics" width="600">
+</p>
+
 This project shows how to take a symbolic CasADi function, generate C code, adapt it for CUDA, and run it directly on the GPU using `__device__` kernels. This makes heavy forward kinematics, dynamics, or optimization workloads much faster, especially when evaluating many candidates in parallel.
 
 It shows how to patch the codegen output so it becomes CUDA compatible, how to wrap the function for device side execution, and how to launch batched evaluations directly on the GPU. The goal is not to provide a full library, but to give a clean minimal example that users can copy, adapt, and extend when they need high speed casadi function evaluations running in parallel on the GPU.
