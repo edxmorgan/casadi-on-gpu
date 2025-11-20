@@ -69,8 +69,7 @@ __device__
 int fkeval(...) { return casadi_f0(...); }
 ```
 
-Everything called inside `casadi_f0()` should also be marked with the device qualifier.
-Everything not used on the GPU can remain unchanged.
+Any functions defined in the generated file that are called inside `casadi_f0()` must be marked `__device__` so they can run on the GPU. Built in math functions like sin, cos, or sqrt already have device versions, so they do not need modification. Everything else that is not executed on the GPU can remain unchanged.
 
 ---
 
@@ -111,18 +110,12 @@ int fkeval(const casadi_real** arg,
            int mem);
 ```
 
-Meaning:
-
-* `arg` and `res` are arrays of pointers to inputs and outputs.
-* `iw` is an integer workspace for internal operations.
-* `w` is a floating point workspace for scratch values.
-* `mem` is an index used when CasADi stores internal state.
-
-The header gives the exact buffer sizes.
-In this FK example they are zero, so we allocate minimal one element arrays to keep CUDA happy.
-
-If your CasADi function has non zero workspace sizes, allocate arrays of those sizes in the wrapper.
-
+`arg` and `res` are arrays of pointers to inputs and outputs
+`iw` and `w` are small scratch workspaces CasADi may use internally
+The sizes of these arrays are provided in the generated header
+For this FK example they are both zero, so we pass small dummy arrays
+`mem` is a memory slot index used when CasADi maintains internal state In this FK example it does nothing, so 0 is fine
+If your function has non zero workspace sizes, allocate arrays of the required sizes inside the wrapper.
 ---
 
 ## **5. Evaluate Many Samples in Parallel**
