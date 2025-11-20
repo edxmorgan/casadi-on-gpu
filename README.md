@@ -103,7 +103,7 @@ __device__ void device_fk_eval(
 CasADi generated functions always follow the signature:
 
 ```c
-int fkeval(const casadi_real** arg,
+int fun_name(const casadi_real** arg,
            casadi_real** res,
            casadi_int* iw,
            casadi_real* w,
