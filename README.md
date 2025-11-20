@@ -20,7 +20,7 @@ This project shows how to take a symbolic CasADi function, generate C code, adap
 
 ### **1. Create CasADi Function in Python**
 
-Generate your FK or dynamics function as usual:
+Generate your casadi function as usual:
 
 ```python
 fk = ca.Function("fkeval", [q, params1, params2], [output])
@@ -45,8 +45,6 @@ This produces:
 ---
 
 ### **3. Make the Code CUDA Friendly**
-
-Minimal modifications:
 
 #### **Header (`fk_alpha.h`)**
 
@@ -74,7 +72,7 @@ __device__
 int fkeval(...) { return casadi_f0(...); }
 ```
 
-All other functions remain CPU only.
+All other functions non standard function used in casadi_f0 should be __device__ qualified. Everything else can remain on CPU only.
 
 ---
 
