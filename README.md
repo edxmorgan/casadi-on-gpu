@@ -170,8 +170,8 @@ This is what gives the large speedup.
 casadi on gpu/
 │
 ├── src/
-│   ├── fk_alpha.cu          CUDA patched CasADi code
-│   ├── fk_alpha.cuh
+│   ├── fk_alpha.cu          CUDA patched CasADi C generated code
+│   ├── fk_alpha.cuh         CasADi generated Header with device qualifiers
 │   ├── device_fk_eval.cuh   Device wrapper
 │   ├── main.cu              Example program
 │
