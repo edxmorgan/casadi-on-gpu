@@ -40,7 +40,7 @@ This produces:
 
 ## **3. Patch the Code for CUDA**
 
-### **Header (`fk_alpha.h`)**
+### **Header (`fk_alpha.h`) → rename to `fk_alpha.cuh`**
 
 Add safe CUDA qualifiers so the header works on both host and device:
 
