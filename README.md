@@ -4,17 +4,15 @@
   <img src="demo.gif" alt="80000 evaluations of forward kinematics" width="600">
 </p>
 
-A minimal example showing how to take a CasADi generated C function, patch it for CUDA, and run it directly on the GPU. This enables extremely fast parallel evaluation of forward kinematics, dynamics, or any other CasADi symbolic function on thousands of candidates at once.
+A minimal example that shows how to take CasADi generated C code, patch it so it can run inside CUDA kernels, and evaluate it directly on the GPU. This approach makes it possible to run forward kinematics or dynamics or any other CasADi symbolic function on thousands of samples at very high speed.
 
-This is **not** a library, but a clean template you can copy and adapt whenever you want CasADi functions to run inside CUDA kernels.
+This is not a library. It is a small template that you can copy when you want CasADi functions to run on the GPU.
 
 ---
 
 ## **Workflow Overview**
 
-### **1. Create CasADi Function in Python**
-
-Generate your CasADi function as usual:
+### **1. Create a CasADi Function in Python**
 
 ```python
 fk = ca.Function("fkeval", [q, params1, params2], [output])
@@ -26,23 +24,23 @@ fk.save("fk_eval.casadi")
 ### **2. Generate C Code**
 
 ```python
-cg = ca.CodeGenerator("fk_alpha", {"with_header": True, "casadi_real": "float"})
+cg = ca.CodeGenerator(
+    "fk_alpha",
+    {"with_header": True, "casadi_real": "float"}
+)
 cg.add(fk)
 cg.generate("src/")
 ```
 
-This produces:
-
-* `fk_alpha.h`
-* `fk_alpha.c`
+This creates `fk_alpha.h` and `fk_alpha.c`.
 
 ---
 
 ## **3. Patch the Code for CUDA**
 
-### **Header (`fk_alpha.h`) → rename to `fk_alpha.cuh`**
+### **Header: rename `fk_alpha.h` to `fk_alpha.cuh`**
 
-Add safe CUDA qualifiers so the header works on both host and device:
+Add safe CUDA qualifiers so the header works on both host and device.
 
 ```c
 #ifndef __CUDACC__
@@ -52,9 +50,9 @@ Add safe CUDA qualifiers so the header works on both host and device:
 __device__ int fkeval(const casadi_real** arg, casadi_real** res, ...);
 ```
 
-### **Source (`fk_alpha.c`) → rename to `fk_alpha.cu`**
+### **Source: rename `fk_alpha.c` to `fk_alpha.cu`**
 
-Mark all functions called inside the CasADi kernel as device code:
+Mark all functions that run on the GPU.
 
 ```c
 __device__ casadi_real casadi_sq(casadi_real x) { return x * x; }
@@ -66,14 +64,13 @@ __device__
 int fkeval(...) { return casadi_f0(...); }
 ```
 
-Any helper functions used by `casadi_f0()` must also be tagged `__device__`.
-Everything else can remain CPU only.
+Any helper called inside `casadi_f0` must also be tagged `__device__`.
 
 ---
 
 ## **4. Device Wrapper**
 
-`device_fk_eval.cuh`:
+`device_fk_eval.cuh`
 
 ```cpp
 __device__ void device_fk_eval(
@@ -92,18 +89,39 @@ __device__ void device_fk_eval(
 }
 ```
 
+### What are `iw`, `w`, and `mem`
+
+CasADi functions always receive:
+
+```c
+int fkeval(const casadi_real** arg,
+           casadi_real** res,
+           casadi_int* iw,
+           casadi_real* w,
+           int mem);
+```
+
+* `arg` and `res` are arrays of pointers to inputs and outputs
+* `iw` and `w` are small scratch workspaces CasADi may use internally
+* The sizes of these arrays are provided in the generated header
+* For this FK example they are both zero, so we pass small dummy arrays
+* `mem` is a memory slot index used when CasADi maintains internal state
+  In this FK example it does nothing, so `0` is fine
+
+If your function has non zero workspace sizes, allocate arrays of the required sizes inside the wrapper.
+
 ---
 
-## **5. Evaluate Thousands in Parallel**
-
-Example kernel:
+## **5. Evaluate Many Samples in Parallel**
 
 ```cpp
-fk_kernel<<<blocks, threads>>>(d_q_all, d_p1, d_p2, d_out_all, N);
+fk_kernel<<<blocks, threads>>>(
+    d_q_all, d_p1, d_p2, d_out_all, N
+);
 cudaDeviceSynchronize();
 ```
 
-Each GPU thread processes one candidate configuration.
+Each GPU thread evaluates one forward kinematics call.
 
 ---
 
@@ -113,10 +131,10 @@ Each GPU thread processes one candidate configuration.
 casadi-on-gpu/
 │
 ├── src/
-│   ├── fk_alpha.cu          # CasADi-generated and CUDA patched
-│   ├── fk_alpha.h
-│   ├── device_fk_eval.cuh   # Device wrapper
-│   ├── main.cu              # Example CUDA usage
+│   ├── fk_alpha.cu          CUDA patched CasADi code
+│   ├── fk_alpha.cuh
+│   ├── device_fk_eval.cuh   Device wrapper
+│   ├── main.cu              Example usage
 │
 └── CMakeLists.txt
 ```
@@ -137,7 +155,4 @@ make -j8
 
 ## **Why Use This**
 
-* CasADi C code is fast but limited to the CPU.
-* Robotics and control algorithms often require huge batches of FK or dynamics evaluations.
-* CUDA makes these workloads massively parallel.
-* The method here lets you drop CasADi functions straight onto the GPU with minimal changes.
+CasADi produces very fast C code but runs only on the CPU. Many robotics and control algorithms need thousands of FK or dynamics evaluations. GPUs can process these evaluations in parallel. This project provides a clear template for running CasADi functions directly inside CUDA kernels with minimal patching.
