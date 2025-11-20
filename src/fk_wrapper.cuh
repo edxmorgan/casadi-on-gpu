@@ -32,22 +32,35 @@ __device__ void device_fk_eval(
     casadi_real* res_local[1] = { out };
     casadi_real** res = res_local;
 
-    // Work arrays (sizes from fk_alpha.h, might be zero)
+    // Work arrays
     casadi_int  iw[fkeval_SZ_IW > 0 ? fkeval_SZ_IW : 1];
     casadi_real w [fkeval_SZ_W  > 0 ? fkeval_SZ_W  : 1];
 
     fkeval(arg, res, iw, w, 0);
 }
 
-// Simple kernel that calls the helper once
+// Kernel to compute FK for many candidates in parallel
 __global__ void fk_kernel(
-    const casadi_real* q,
-    const casadi_real* p1,
-    const casadi_real* p2,
-    casadi_real* out
+    const casadi_real* q_all,    // shape [N, 4]
+    const casadi_real* p1,       // shared parameters
+    const casadi_real* p2,       // shared parameters
+    casadi_real* out_all,        // shape [N, 6]
+    int n_candidates
 )
 {
-    if (threadIdx.x == 0 && blockIdx.x == 0) {
-        device_fk_eval(q, p1, p2, out);
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx >= n_candidates) {
+        return;
     }
+
+    // each candidate has 4 joints
+    const int DOF = 4;
+    const int OUT_DIM = 6;
+
+    const casadi_real* q_i  = q_all  + DOF * idx;
+    casadi_real*       out_i = out_all + OUT_DIM * idx;
+
+    device_fk_eval(q_i, p1, p2, out_i);
 }
+
