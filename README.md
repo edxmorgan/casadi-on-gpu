@@ -1,1 +1,1 @@
-# cuda-casadi-ik
+# cuda_ik_casadi
