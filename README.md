@@ -99,19 +99,9 @@ __device__ void device_fk_eval(
 
 ---
 
-## **5. Run One Evaluation**
+## **5. Run Thousands in Parallel**
 
 `main.cu` example:
-
-```c++
-fk_kernel<<<1,1>>>(d_q, d_p1, d_p2, d_out);
-cudaDeviceSynchronize();
-```
-
----
-
-## **6. Run Thousands in Parallel**
-
 ```c++
 fk_kernel_many<<<blocks, threads>>>(d_q_all, d_p1, d_p2, d_out_all, N);
 cudaDeviceSynchronize();
@@ -119,7 +109,7 @@ cudaDeviceSynchronize();
 
 ---
 
-## **Project Structure**
+## **Example Project**
 
 ```
 casadi-on-gpu/
