@@ -4,7 +4,7 @@
   <img src="demo.gif" alt="80000 evaluations of forward kinematics" width="3000">
 </p>
 
-This project shows how to take CasADi-generated C code, patch it for CUDA, and evaluate models directly on the GPU. The FK demo above evaluates **N = 80000** joint configurations in under **three milliseconds**. A dynamics demo is included and loads posterior samples from `src/posterior.bin`.
+This project shows how to take CasADi-generated C code, patch it for CUDA, and evaluate models directly on the GPU. The demo above evaluates the forward kinematics of **80000** batches of 4 dof joint configuration in under **three milliseconds**. A demo of a robot dynamic model with 33 parameters is also included where posteriors of the parameters are sampled from `src/posterior.bin` and batch evaluated for stochastic forward dynamics.
 
 This is a template, not a library: copy/adapt the workflow to your own CasADi functions.
 
@@ -13,7 +13,7 @@ This is a template, not a library: copy/adapt the workflow to your own CasADi fu
 ## **Workflow Overview**
 
 ### **1. Create CasADi function**
-Generate your symbolic function in Python/Matlab (FK or dynamics).
+Generate your symbolic function in Python/Matlab.
 
 ### **2. Generate C code with float as casadi_real**
 Use `CodeGenerator(..., {"with_header": True, "casadi_real": "float"})` to emit `.c/.h` into `src/generated/`.
@@ -21,7 +21,7 @@ Use `CodeGenerator(..., {"with_header": True, "casadi_real": "float"})` to emit 
 ### **3. Patch for CUDA**
 - Rename header to `.cuh`, source to `.cu`.
 - Add `__device__` to functions that run on GPU.
-- Keep math intrinsics as-is; mark helper functions used inside device code.
+- Keep math intrinsics as-is; `__device__` mark helper functions used inside device code.
 
 ### **4. Add a device wrapper**
 Wrap your CasADi entry point to set up `arg`, `res`, `iw`, `w` arrays inside a `__device__` helper, then launch a kernel that calls it per-thread.
