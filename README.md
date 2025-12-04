@@ -15,7 +15,7 @@ This project shows how to take CasADi-generated C code, patch it for CUDA, and e
 
 A demo of a robot dynamic model with 33 parameters is also included where posteriors of the parameters are sampled from `src/posterior.bin` and batch evaluated for stochastic forward dynamics.
 
-This is a template, not a library: copy/adapt the workflow to your own CasADi functions.
+This code is an archetype, not a library: copy/adapt the workflow to your own CasADi functions.
 
 ---
 
