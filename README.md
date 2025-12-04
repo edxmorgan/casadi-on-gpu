@@ -4,11 +4,14 @@
   <img src="header.png" alt="parallel computing with casadi on gpu" width="3000">
 </p>
 
+---
 
 This project shows how to take CasADi-generated C code, patch it for CUDA, and evaluate models directly on the GPU. The demo below evaluates the forward kinematics of **80000** batches of 4 dof joint configuration in under **three milliseconds**. 
 <p align="center">
   <img src="demo.gif" alt="80000 evaluations of forward kinematics" width="3000">
 </p>
+
+---
 
 A demo of a robot dynamic model with 33 parameters is also included where posteriors of the parameters are sampled from `src/posterior.bin` and batch evaluated for stochastic forward dynamics.
 
