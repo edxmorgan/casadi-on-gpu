@@ -6,7 +6,7 @@
 
 ---
 
-This project shows how to take CasADi-generated C code, patch it for CUDA, and evaluate functions directly on the GPU. The demo below evaluates **80k** batch of forward kinematics for a floating base 4 dof manipulator robot in under **three milliseconds**. 
+This project shows how to take CasADi-generated C code, patch it for CUDA, and evaluate functions directly on the GPU. The demo below evaluates **80k** samples of floating base forward kinematics for a 4 degree of freedom manipulator in under **three milliseconds**. 
 <p align="center">
   <img src="demo.gif" alt="80000 evaluations of forward kinematics" width="3000">
 </p>
