@@ -6,7 +6,7 @@
 
 ---
 
-This project shows how to take CasADi-generated C code, patch it for CUDA, and evaluate functions directly on the GPU. The demo below evaluates **80k** samples of floating base forward kinematics for a 4 degree of freedom manipulator in under **three milliseconds**. 
+This project shows how to take CasADi-generated C code, patch it for CUDA, and evaluate functions directly on the GPU. It also includes a small pybind11-based Python binding archetype so you can call GPU kernels from Python (FK/dynamics are examples to copy/adapt). The demo below evaluates **80k** samples of floating base forward kinematics for a 4 degree of freedom manipulator in under **three milliseconds**. 
 <p align="center">
   <img src="demo.gif" alt="80000 evaluations of forward kinematics" width="3000">
 </p>
