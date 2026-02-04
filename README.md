@@ -1,7 +1,7 @@
 # **casadi on gpu**
 
 <p align="center">
-  <img src="header.png" alt="parallel computing with casadi on gpu" width="3000">
+  <img src="header.png" alt="parallel computing with casadi on gpu" width="1500">
 </p>
 
 ---
