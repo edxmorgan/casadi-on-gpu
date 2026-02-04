@@ -166,3 +166,63 @@ make -j8
 # Dynamics demo (expects src/posterior.bin)
 ./run_dynamics_gpu
 ```
+
+---
+
+## **Python bindings (pybind11)**
+
+This repo also includes a small pybind11 module that exposes the FK and dynamics kernels to Python.
+The bindings accept raw GPU pointers (integer addresses) from CuPy or PyTorch tensors.
+
+### Build
+
+```bash
+mkdir -p build
+cd build
+cmake -DBUILD_PYTHON=ON ..
+make -j8
+```
+
+If CMake cannot find pybind11, point it to your install:
+
+```bash
+cmake -DBUILD_PYTHON=ON -Dpybind11_DIR=$(python -m pybind11 --cmakedir) ..
+```
+
+### Usage (PyTorch)
+
+```python
+import torch
+import casadi_on_gpu as cog
+
+N = 1024
+q_all = torch.zeros((N, cog.FK_DOF), device="cuda", dtype=torch.float32)
+p1 = torch.zeros((6,), device="cuda", dtype=torch.float32)
+p2 = torch.zeros((6,), device="cuda", dtype=torch.float32)
+out = torch.zeros((N, cog.FK_OUT_DIM), device="cuda", dtype=torch.float32)
+
+stream = torch.cuda.current_stream().cuda_stream
+cog.fk_forward(q_all.data_ptr(), p1.data_ptr(), p2.data_ptr(), out.data_ptr(),
+               N, stream_ptr=stream, sync=False)
+```
+
+### Usage (CuPy)
+
+```python
+import cupy as cp
+import casadi_on_gpu as cog
+
+N = 1024
+q_all = cp.zeros((N, cog.FK_DOF), dtype=cp.float32)
+p1 = cp.zeros((6,), dtype=cp.float32)
+p2 = cp.zeros((6,), dtype=cp.float32)
+out = cp.zeros((N, cog.FK_OUT_DIM), dtype=cp.float32)
+
+stream = cp.cuda.get_current_stream().ptr
+cog.fk_forward(q_all.data.ptr, p1.data.ptr, p2.data.ptr, out.data.ptr,
+               N, stream_ptr=stream, sync=False)
+```
+
+Notes:
+- Inputs and outputs must be `float32` on the GPU.
+- Use `sync=True` if you are not coordinating with your own CUDA streams.
