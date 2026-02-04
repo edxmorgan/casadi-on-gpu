@@ -183,12 +183,6 @@ cmake -DBUILD_PYTHON=ON ..
 make -j8
 ```
 
-If CMake cannot find pybind11, point it to your install:
-
-```bash
-cmake -DBUILD_PYTHON=ON -Dpybind11_DIR=$(python -m pybind11 --cmakedir) ..
-```
-
 ### Usage (PyTorch)
 
 ```python
