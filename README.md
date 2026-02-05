@@ -73,18 +73,19 @@ They are `.cpp` files but compiled as CUDA by CMake (so the `<<< >>>` kernel syn
 ### Usage (PyTorch)
 
 ```python
-import torch
-import casadi_on_gpu as cog
+import torch, casadi_on_gpu as cog
 
-N = 1024
+N = 80000
 q_all = torch.zeros((N, cog.FK_DOF), device="cuda", dtype=torch.float32)
 p1 = torch.zeros((6,), device="cuda", dtype=torch.float32)
 p2 = torch.zeros((6,), device="cuda", dtype=torch.float32)
 out = torch.zeros((N, cog.FK_OUT_DIM), device="cuda", dtype=torch.float32)
-
 stream = torch.cuda.current_stream().cuda_stream
 cog.fk_forward(q_all.data_ptr(), p1.data_ptr(), p2.data_ptr(), out.data_ptr(),
-               N, stream_ptr=stream, sync=False)
+                N, stream_ptr=stream, sync=True)
+
+out
+
 ```
 
 ### Usage (CuPy)
@@ -93,7 +94,7 @@ cog.fk_forward(q_all.data_ptr(), p1.data_ptr(), p2.data_ptr(), out.data_ptr(),
 import cupy as cp
 import casadi_on_gpu as cog
 
-N = 1024
+N = 80000
 q_all = cp.zeros((N, cog.FK_DOF), dtype=cp.float32)
 p1 = cp.zeros((6,), dtype=cp.float32)
 p2 = cp.zeros((6,), dtype=cp.float32)
@@ -102,6 +103,7 @@ out = cp.zeros((N, cog.FK_OUT_DIM), dtype=cp.float32)
 stream = cp.cuda.get_current_stream().ptr
 cog.fk_forward(q_all.data.ptr, p1.data.ptr, p2.data.ptr, out.data.ptr,
                N, stream_ptr=stream, sync=False)
+out
 ```
 
 Notes:
