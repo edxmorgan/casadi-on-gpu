@@ -5,8 +5,8 @@
 
 #include <cuda_runtime.h>
 
-#include "device_dynamics_wrapper.cuh"
-#include "device_fk_wrapper.cuh"
+#include "dynamics_blue.cuh"
+#include "fk_alpha.cuh"
 
 namespace casadi_on_gpu {
 namespace {
@@ -49,7 +49,7 @@ void fk_forward(std::uintptr_t q_all_ptr,
     cudaStream_t stream = stream_from_ptr(stream_ptr);
 
     const int blocks = (n_candidates + threads_per_block - 1) / threads_per_block;
-    fk_kernel<<<blocks, threads_per_block, 0, stream>>>(
+    fkeval_kernel<<<blocks, threads_per_block, 0, stream>>>(
         q_all,
         p1,
         p2,
@@ -57,16 +57,16 @@ void fk_forward(std::uintptr_t q_all_ptr,
         n_candidates
     );
 
-    throw_on_cuda_error(cudaGetLastError(), "fk_kernel launch failed");
+    throw_on_cuda_error(cudaGetLastError(), "fkeval_kernel launch failed");
     if (sync) {
-        throw_on_cuda_error(cudaStreamSynchronize(stream), "fk_kernel sync failed");
+        throw_on_cuda_error(cudaStreamSynchronize(stream), "fkeval_kernel sync failed");
     }
 }
 
 void dynamics_forward(std::uintptr_t sim_x_ptr,
                       std::uintptr_t sim_u_ptr,
                       std::uintptr_t sim_p_all_ptr,
-                      float dt,
+                      std::uintptr_t dt_ptr,
                       std::uintptr_t f_ext_ptr,
                       std::uintptr_t sim_x_next_all_ptr,
                       int n_candidates,
@@ -83,24 +83,25 @@ void dynamics_forward(std::uintptr_t sim_x_ptr,
     auto* sim_x = reinterpret_cast<casadi_real*>(sim_x_ptr);
     auto* sim_u = reinterpret_cast<casadi_real*>(sim_u_ptr);
     auto* sim_p_all = reinterpret_cast<casadi_real*>(sim_p_all_ptr);
+    auto* dt = reinterpret_cast<const casadi_real*>(dt_ptr);
     auto* f_ext = reinterpret_cast<casadi_real*>(f_ext_ptr);
     auto* sim_x_next_all = reinterpret_cast<casadi_real*>(sim_x_next_all_ptr);
     cudaStream_t stream = stream_from_ptr(stream_ptr);
 
     const int blocks = (n_candidates + threads_per_block - 1) / threads_per_block;
-    dynamics_kernel<<<blocks, threads_per_block, 0, stream>>>(
+    Vnext_reg_kernel<<<blocks, threads_per_block, 0, stream>>>(
         sim_x,
         sim_u,
         sim_p_all,
-        static_cast<casadi_real>(dt),
+        dt,
         f_ext,
         sim_x_next_all,
         n_candidates
     );
 
-    throw_on_cuda_error(cudaGetLastError(), "dynamics_kernel launch failed");
+    throw_on_cuda_error(cudaGetLastError(), "Vnext_reg_kernel launch failed");
     if (sync) {
-        throw_on_cuda_error(cudaStreamSynchronize(stream), "dynamics_kernel sync failed");
+        throw_on_cuda_error(cudaStreamSynchronize(stream), "Vnext_reg_kernel sync failed");
     }
 }
 

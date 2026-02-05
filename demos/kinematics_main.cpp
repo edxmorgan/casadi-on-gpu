@@ -1,7 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <cuda_runtime.h>
-#include "device_fk_wrapper.cuh"
+#include "fk_alpha.cuh"
 
 int main() {
     // Problem sizes
@@ -55,7 +55,7 @@ int main() {
     int threads_per_block = 128;
     int blocks = (N + threads_per_block - 1) / threads_per_block;
 
-    fk_kernel<<<blocks, threads_per_block>>>(
+    fkeval_kernel<<<blocks, threads_per_block>>>(
         d_q_all,
         d_p1,
         d_p2,
