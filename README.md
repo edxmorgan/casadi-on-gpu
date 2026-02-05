@@ -54,6 +54,8 @@ cmake -DBUILD_PYTHON=ON -DCMAKE_INSTALL_PREFIX=$HOME/.local ..
 make -j8
 cmake --install .
 
+ctest -V -R casadi_on_gpu_py_smoke
+
 # Kinematics demo
 ./run_kinematics_gpu
 
