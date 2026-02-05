@@ -31,14 +31,14 @@ PYBIND11_MODULE(casadi_on_gpu, m) {
           py::arg("sim_x_ptr"),
           py::arg("sim_u_ptr"),
           py::arg("sim_p_all_ptr"),
-          py::arg("dt"),
+          py::arg("dt_ptr"),
           py::arg("f_ext_ptr"),
           py::arg("sim_x_next_all_ptr"),
           py::arg("n_candidates"),
           py::arg("threads_per_block") = 128,
           py::arg("stream_ptr") = 0,
           py::arg("sync") = true,
-          "Launch dynamics kernel. Pointers must be GPU addresses.");
+          "Launch dynamics kernel. Pointers (including dt_ptr) must be GPU addresses.");
 
     m.def("device_synchronize",
           &casadi_on_gpu::device_synchronize,
