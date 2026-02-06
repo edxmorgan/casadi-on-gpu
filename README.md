@@ -6,7 +6,7 @@
 
 ---
 
-This project began as a guide on manually cuda-patching c-generated code from CasADi codegen. Efforts to automate the process have been made and in the pipeline to be merged into CasADi [https://github.com/casadi/casadi/pull/4291]. This allows casadi code to be natively converted to `.cu/.cuh` and evaluated directly on a GPU. Now, this repo is being repurposed to demonstrate `cpp`, `pytorch` and `cupy` interfacing with the generated `.cu/.cuh` enabling `cpp` and `python` batch parallelization.
+This project began as a guide on manually cuda-patching c-generated code from CasADi codegen. Efforts to automate the process have been made and in the pipeline to be merged into CasADi [https://github.com/casadi/casadi/pull/4291]. This allows casadi code to be natively converted to `.cu/.cuh` and evaluated directly on a GPU. Now, this repo is being repurposed to demonstrate `cpp`, `pytorch` and `cupy` interfacing with the generated `.cu/.cuh` enabling `cpp` and `python` batch parallelization of functions.
 
 
 To demonstrate this, the repo contains two example models:
