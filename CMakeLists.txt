@@ -13,25 +13,30 @@ set(CMAKE_CUDA_ARCHITECTURES 86)
 include_directories(
     src
     src/generated
-    src/wrappers
-    src/kernels
+    demos
 )
 
 add_executable(run_kinematics_gpu
-    src/kernels/kinematics_main.cu
+    demos/kinematics_main.cpp
     src/generated/fk_alpha.cu
 )
 
 set_property(TARGET run_kinematics_gpu PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 
 add_executable(run_dynamics_gpu
-    src/kernels/dynamics_main.cu
+    demos/dynamics_main.cpp
     src/generated/dynamics_blue.cu
 )
 
 set_property(TARGET run_dynamics_gpu PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 target_compile_definitions(run_dynamics_gpu PRIVATE
     POSTERIOR_BIN_PATH="${CMAKE_SOURCE_DIR}/src/posterior.bin"
+)
+
+set_source_files_properties(
+    demos/kinematics_main.cpp
+    demos/dynamics_main.cpp
+    PROPERTIES LANGUAGE CUDA
 )
 
 option(BUILD_PYTHON "Build Python bindings with pybind11" ON)
@@ -53,8 +58,7 @@ if (BUILD_PYTHON)
     target_include_directories(casadi_on_gpu PRIVATE
         src
         src/generated
-        src/wrappers
-        src/kernels
+        demos
         src/python
     )
 
@@ -70,14 +74,14 @@ if (BUILD_PYTHON)
         COMMAND ${CMAKE_COMMAND} -E env
             PYTHONPATH=$<TARGET_FILE_DIR:casadi_on_gpu>
             ${Python3_EXECUTABLE}
-            ${CMAKE_SOURCE_DIR}/python/test_smoke.py
+            ${CMAKE_SOURCE_DIR}/tests/test_smoke.py
     )
 
     # Install the Python extension into the prefix's site-packages.
-    # Compute the interpreter's default platlib suffix: prefix/lib/pythonX.Y/(site|dist)-packages.
+    # Use the user site-packages when installing under $HOME, otherwise fall back to system platlib.
     execute_process(
         COMMAND ${Python3_EXECUTABLE} -c
-                "import os, sysconfig; platlib = sysconfig.get_path('platlib'); prefix = os.path.dirname(os.path.dirname(os.path.dirname(platlib))); print(os.path.relpath(platlib, prefix))"
+                "import os, site, sysconfig; prefix=r'${CMAKE_INSTALL_PREFIX}'; user_site=site.getusersitepackages(); platlib=sysconfig.get_path('platlib'); base=sysconfig.get_config_var('base') or sysconfig.get_config_var('prefix') or os.path.dirname(os.path.dirname(os.path.dirname(platlib))); print(os.path.relpath(user_site, prefix) if user_site.startswith(prefix + os.sep) else os.path.relpath(platlib, base))"
         OUTPUT_VARIABLE PYTHON_INSTALL_DIR
         OUTPUT_STRIP_TRAILING_WHITESPACE
     )
