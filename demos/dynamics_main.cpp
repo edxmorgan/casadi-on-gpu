@@ -4,7 +4,7 @@
 #include <vector>
 #include <cuda_runtime.h>
 
-#include "device_dynamics_wrapper.cuh"
+#include "dynamics_blue.cuh"
 
 #ifndef POSTERIOR_BIN_PATH
 #define POSTERIOR_BIN_PATH "src/posterior.bin"
@@ -101,12 +101,14 @@ int main() {
     casadi_real *d_sim_x = nullptr;
     casadi_real *d_sim_u = nullptr;
     casadi_real *d_sim_p_all = nullptr;
+    casadi_real *d_dt = nullptr;
     casadi_real *d_f_ext = nullptr;
     casadi_real *d_sim_x_next_all = nullptr;
 
     cudaMalloc(&d_sim_x, STATE_DIM * sizeof(casadi_real));
     cudaMalloc(&d_sim_u, CONTROL_DIM * sizeof(casadi_real));
     cudaMalloc(&d_sim_p_all, N * PARAM_DIM * sizeof(casadi_real));
+    cudaMalloc(&d_dt, sizeof(casadi_real));
     cudaMalloc(&d_f_ext, CONTROL_DIM * sizeof(casadi_real));
     cudaMalloc(&d_sim_x_next_all, N * OUT_DIM * sizeof(casadi_real));
 
@@ -114,17 +116,18 @@ int main() {
     cudaMemcpy(d_sim_x, h_sim_x.data(), STATE_DIM * sizeof(casadi_real), cudaMemcpyHostToDevice);
     cudaMemcpy(d_sim_u, h_sim_u.data(), CONTROL_DIM * sizeof(casadi_real), cudaMemcpyHostToDevice);
     cudaMemcpy(d_sim_p_all, h_sim_p_all.data(), N * PARAM_DIM * sizeof(casadi_real), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_dt, &dt, sizeof(casadi_real), cudaMemcpyHostToDevice);
     cudaMemcpy(d_f_ext, h_f_ext.data(), CONTROL_DIM * sizeof(casadi_real), cudaMemcpyHostToDevice);
 
     // Launch kernel
     const int threads_per_block = 128;
     const int blocks = (N + threads_per_block - 1) / threads_per_block;
 
-    dynamics_kernel<<<blocks, threads_per_block>>>(
+    Vnext_reg_kernel<<<blocks, threads_per_block>>>(
         d_sim_x,
         d_sim_u,
         d_sim_p_all,
-        dt,
+        d_dt,
         d_f_ext,
         d_sim_x_next_all,
         N
@@ -148,6 +151,7 @@ int main() {
     cudaFree(d_sim_x);
     cudaFree(d_sim_u);
     cudaFree(d_sim_p_all);
+    cudaFree(d_dt);
     cudaFree(d_f_ext);
     cudaFree(d_sim_x_next_all);
 
