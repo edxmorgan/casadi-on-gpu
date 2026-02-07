@@ -127,21 +127,21 @@ Notes:
 
 ## Performance & Benchmarks
 
-The generated CUDA kernels are designed for large batched evaluation. Below are representative timings measured on an **RTX 5090 laptop GPU** using CUDA events with warmup and repeated launches.
+The generated CUDA kernels are designed for large batched evaluation. Below are measured timings on an **RTX 5090 laptop GPU**, using CUDA events with warmup and repeated launches.
 
 ---
 
-### Forward kinematics (4-DOF)
+### Forward kinematics (4-DOF model)
 
 Batch size: **N = 80,000**
 
 | Interface | Time / batch | Throughput |
 |----------|--------------|------------|
-| C++      | ~0.082 ms    | ~9.8 × 10⁸ eval/s |
-| PyTorch  | ~0.082 ms    | ~9.7 × 10⁸ eval/s |
-| CuPy     | ~0.082 ms    | ~9.7 × 10⁸ eval/s |
+| C++      | 0.0817 ms    | 9.79 × 10⁸ eval/s |
+| PyTorch  | 0.0824 ms    | 9.71 × 10⁸ eval/s |
+| CuPy     | 0.0823 ms    | 9.72 × 10⁸ eval/s |
 
-This kernel is extremely lightweight, so runtime is close to kernel launch overhead. Throughput increases with larger batch sizes.
+This kernel is extremely lightweight, so runtime is close to kernel launch overhead. Throughput improves further with larger batches.
 
 ---
 
@@ -151,9 +151,9 @@ Batch size: **N = 80,000**
 
 | Interface | Time / batch | Throughput |
 |----------|--------------|------------|
-| C++      | ~137 ms      | ~5.8 × 10⁵ eval/s |
-| PyTorch  | ~137 ms      | ~5.8 × 10⁵ eval/s |
-| CuPy     | ~137 ms      | ~5.8 × 10⁵ eval/s |
+| C++      | 136.956 ms   | 584,130 eval/s |
+| PyTorch  | 137.154 ms   | 583,288 eval/s |
+| CuPy     | 137.036 ms   | 583,786 eval/s |
 
 This kernel is compute-heavy and represents realistic stochastic dynamics workloads.
 
@@ -163,11 +163,29 @@ This kernel is compute-heavy and represents realistic stochastic dynamics worklo
 
 All timings use:
 
-- warmup iterations to avoid first-launch overhead  
+- warmup iterations to remove first-launch overhead  
 - CUDA events for accurate kernel timing  
 - batched execution (single kernel launch per batch)  
 - `float32` GPU tensors  
 
+Example timing pattern:
+
+```python
+start = torch.cuda.Event(enable_timing=True)
+end = torch.cuda.Event(enable_timing=True)
+
+start.record()
+for _ in range(reps):
+    kernel_call(...)
+end.record()
+torch.cuda.synchronize()
+
+ms = start.elapsed_time(end)
+```
+
+Equivalent logic is used for CuPy and C++ benchmarks.
+
+---
 
 ### Practical notes
 
