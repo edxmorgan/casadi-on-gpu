@@ -108,3 +108,57 @@ out
 Notes:
 - Inputs and outputs must be `float32` on the GPU.
 - Use `sync=True` if you are not coordinating with your own CUDA streams.
+
+
+## Performance & Benchmarks
+
+The generated CUDA kernels are designed for large batched evaluation. Below are representative timings measured on an **RTX 5090 laptop GPU** using CUDA events with warmup and repeated launches.
+
+---
+
+### Forward kinematics (4-DOF)
+
+Batch size: **N = 80,000**
+
+| Interface | Time / batch | Throughput |
+|----------|--------------|------------|
+| C++      | ~0.082 ms    | ~9.8 × 10⁸ eval/s |
+| PyTorch  | ~0.082 ms    | ~9.7 × 10⁸ eval/s |
+| CuPy     | ~0.082 ms    | ~9.7 × 10⁸ eval/s |
+
+This kernel is extremely lightweight, so runtime is close to kernel launch overhead. Throughput increases with larger batch sizes.
+
+---
+
+### Forward dynamics (12-state, 33-parameter model)
+
+Batch size: **N = 80,000**
+
+| Interface | Time / batch | Throughput |
+|----------|--------------|------------|
+| C++      | ~137 ms      | ~5.8 × 10⁵ eval/s |
+| PyTorch  | ~137 ms      | ~5.8 × 10⁵ eval/s |
+| CuPy     | ~137 ms      | ~5.8 × 10⁵ eval/s |
+
+This kernel is compute-heavy and represents realistic stochastic dynamics workloads.
+
+---
+
+### Benchmark methodology
+
+All timings use:
+
+- warmup iterations to avoid first-launch overhead  
+- CUDA events for accurate kernel timing  
+- batched execution (single kernel launch per batch)  
+- `float32` GPU tensors  
+
+
+### Practical notes
+
+- GPU acceleration shines for **large batched evaluations**  
+- PyTorch and CuPy wrappers add negligible overhead vs raw CUDA  
+- FK kernels are launch-bound, dynamics kernels are compute-bound  
+- Performance scales with GPU architecture and batch size  
+
+---
