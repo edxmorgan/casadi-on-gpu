@@ -166,24 +166,7 @@ All timings use:
 - warmup iterations to remove first-launch overhead  
 - CUDA events for accurate kernel timing  
 - batched execution (single kernel launch per batch)  
-- `float32` GPU tensors  
-
-Example timing pattern:
-
-```python
-start = torch.cuda.Event(enable_timing=True)
-end = torch.cuda.Event(enable_timing=True)
-
-start.record()
-for _ in range(reps):
-    kernel_call(...)
-end.record()
-torch.cuda.synchronize()
-
-ms = start.elapsed_time(end)
-```
-
-Equivalent logic is used for CuPy and C++ benchmarks.
+- `float32` GPU tensors
 
 ---
 
