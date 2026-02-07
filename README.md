@@ -159,17 +159,6 @@ This kernel is compute-heavy and represents realistic stochastic dynamics worklo
 
 ---
 
-### Benchmark methodology
-
-All timings use:
-
-- warmup iterations to remove first-launch overhead  
-- CUDA events for accurate kernel timing  
-- batched execution (single kernel launch per batch)  
-- `float32` GPU tensors
-
----
-
 ### Practical notes
 
 - GPU acceleration shines for **large batched evaluations**  
