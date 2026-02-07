@@ -34,9 +34,24 @@ cmake --install .
 ```
 
 ## **Generate kernels**
+```python
+fk_eval = ca.Function(fname, [..], [..])
+cg = ca.CodeGenerator("fk_alpha", {
+    "with_header": True,
+    "casadi_real": "float",
+    "cpp": False,
+    "cuda": True,
+    "cuda_kernels": {
+        fname: {
+            "batch_inputs": [0],
+        }
+    },
+})
+cg.add(fk_eval)
+out_path = cg.generate(str(codegen_folder) + "/")
+```
 
-The codegen notebooks live in `codegen/` and write `.cu/.cuh` into `src/generated/`.
-Open and run:
+Example script can be found in the `codegen/` notebooks. The scripts generate `.cu/.cuh` into `src/generated/`.
 - `codegen/generate_fk_cuda.ipynb`
 - `codegen/generate_dynamics_cuda.ipynb`
 
