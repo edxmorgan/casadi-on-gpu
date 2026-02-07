@@ -158,7 +158,6 @@ All timings use:
 
 - GPU acceleration shines for **large batched evaluations**  
 - PyTorch and CuPy wrappers add negligible overhead vs raw CUDA  
-- FK kernels are launch-bound, dynamics kernels are compute-bound  
 - Performance scales with GPU architecture and batch size  
 
 ---
