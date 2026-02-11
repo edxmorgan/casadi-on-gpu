@@ -127,42 +127,85 @@ Notes:
 
 ## Performance & Benchmarks
 
-The generated CUDA kernels are designed for large batched evaluation. Below are measured timings on an **RTX 5090 laptop GPU**, using CUDA events with warmup and repeated launches.
+This project targets high-throughput batched evaluation of CasADi-generated CUDA kernels. Benchmarks below reflect realistic large-batch workloads and were measured using CUDA event timing with warmup and repeated launches.
 
 ---
 
-### Forward kinematics (4-DOF model)
+## Benchmark Environment
+
+All measurements were collected on:
+
+**Hardware**
+
+- NVIDIA GeForce RTX 5090 Laptop GPU  
+- 24 GB VRAM  
+
+**Software**
+
+- NVIDIA driver: 580.105.08  
+- CUDA runtime: 13.0  
+
+**Methodology**
+
+- Batched evaluation with N = 80,000 samples  
+- Warmup runs performed before timing  
+- CUDA events used for accurate GPU timing  
+- Hundreds of repeated launches averaged  
+- Asynchronous stream execution  
+
+Performance will vary with GPU architecture, clock behavior, thermals, and batch size.
+
+---
+
+## Forward kinematics kernel  
+4-DOF manipulator model
 
 Batch size: **N = 80,000**
 
 | Interface | Time / batch | Throughput |
 |----------|--------------|------------|
-| C++      | 0.0817 ms    | 9.79 × 10⁸ eval/s |
-| PyTorch  | 0.0824 ms    | 9.71 × 10⁸ eval/s |
-| CuPy     | 0.0823 ms    | 9.72 × 10⁸ eval/s |
+| C++      | 0.00820 ms   | 9.7568 × 10⁹ eval/s |
+| PyTorch  | 0.00830 ms   | 9.6766 × 10⁹ eval/s |
+| CuPy     | 0.00830 ms   | 9.6922 × 10⁹ eval/s |
 
-This kernel is extremely lightweight, so runtime is close to kernel launch overhead. Throughput improves further with larger batches.
+This kernel is extremely lightweight, so runtime is dominated by kernel launch overhead. Throughput increases further with larger batches.
 
 ---
 
-### Forward dynamics (12-state, 33-parameter model)
+## Forward dynamics kernel  
+12-state, 33-parameter stochastic model
 
 Batch size: **N = 80,000**
 
 | Interface | Time / batch | Throughput |
 |----------|--------------|------------|
-| C++      | 136.956 ms   | 584,130 eval/s |
-| PyTorch  | 137.154 ms   | 583,288 eval/s |
-| CuPy     | 137.036 ms   | 583,786 eval/s |
+| C++      | 6.6391 ms    | 1.2050 × 10⁷ eval/s |
+| PyTorch  | 6.6731 ms    | 1.1988 × 10⁷ eval/s |
+| CuPy     | 6.6523 ms    | 1.2026 × 10⁷ eval/s |
 
-This kernel is compute-heavy and represents realistic stochastic dynamics workloads.
+This kernel is compute-heavy and represents realistic stochastic forward dynamics workloads.
+
+---
+
+## Observations
+
+- GPU acceleration is most effective for **large batched evaluations**
+- PyTorch and CuPy wrappers introduce **negligible overhead**
+- Performance is close to raw CUDA launch speed
+- Lightweight kernels approach launch-bound limits
+- Heavy kernels scale with compute intensity
+- Throughput improves with larger batch sizes
 
 ---
 
-### Practical notes
+## Practical implications
 
-- GPU acceleration shines for **large batched evaluations**  
-- PyTorch and CuPy wrappers add negligible overhead vs raw CUDA  
-- Performance scales with GPU architecture and batch size  
+These results demonstrate that CasADi-generated CUDA kernels can support:
 
----
+- Massive batched simulation  
+- Stochastic parameter sampling  
+- Real-time trajectory rollout  
+- Monte Carlo dynamics evaluation  
+- Differentiable robotics pipelines  
+
+Performance scales with GPU architecture and problem size, making this approach well suited for large-scale robotics and control workloads.
