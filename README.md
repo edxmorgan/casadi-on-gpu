@@ -24,13 +24,13 @@ To demonstrate this, the repo contains two example models:
 ## **Prereq: CasADi CUDA codegen branch**
 
 ```bash
-git clone https://github.com/edxmorgan/casadi.git
+git clone -b cuda_codegen https://github.com/edxmorgan/casadi.git casadi
 cd casadi
-git checkout cuda_codegen
-mkdir -p build && cd build
-cmake -DWITH_PYTHON=ON -DCMAKE_INSTALL_PREFIX=$HOME/.local ..
+mkdir -p build
+cd build
+cmake -DWITH_PYTHON=ON -DWITH_PYTHON3=ON ..
 make -j8
-cmake --install .
+sudo make install
 ```
 
 ## **Generate kernels**
