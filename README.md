@@ -53,9 +53,7 @@ Multiple files (explicit):
 
 ## **Build casadi-on-gpu**
 
-Use `BUILD_PYTHON` for this repository.
-Do not use `WITH_PYTHON` / `WITH_PYTHON3` here.
-
+### using cmake
 ```bash
 cd casadi-on-gpu
 mkdir -p build
@@ -67,7 +65,7 @@ cmake --install .
 ctest -V -R casadi_on_gpu_py_smoke
 ```
 
-### Build as pip package
+### using pip
 
 ```bash
 cd casadi-on-gpu
