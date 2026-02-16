@@ -2,11 +2,11 @@
 
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 #include <cuda_runtime.h>
 
-#include "dynamics_blue.cuh"
-#include "fk_alpha.cuh"
+#include "casadi_on_gpu_kernel_registry.h"
 
 namespace casadi_on_gpu {
 namespace {
@@ -25,16 +25,26 @@ cudaStream_t stream_from_ptr(std::uintptr_t stream_ptr) {
     return reinterpret_cast<cudaStream_t>(stream_ptr);
 }
 
+const KernelEntry& find_kernel(const std::string& function_name) {
+    std::size_t n = 0;
+    const KernelEntry* entries = get_kernel_registry(&n);
+    for (std::size_t i = 0; i < n; ++i) {
+        if (function_name == entries[i].function_name) {
+            return entries[i];
+        }
+    }
+    throw std::invalid_argument("Unknown kernel function: " + function_name);
+}
+
 }  // namespace
 
-void fk_forward(std::uintptr_t q_all_ptr,
-                std::uintptr_t p1_ptr,
-                std::uintptr_t p2_ptr,
-                std::uintptr_t out_ptr,
-                int n_candidates,
-                int threads_per_block,
-                std::uintptr_t stream_ptr,
-                bool sync) {
+void launch(const std::string& function_name,
+            const std::vector<std::uintptr_t>& input_ptrs,
+            const std::vector<std::uintptr_t>& output_ptrs,
+            int n_candidates,
+            int threads_per_block,
+            std::uintptr_t stream_ptr,
+            bool sync) {
     if (n_candidates <= 0) {
         throw std::invalid_argument("n_candidates must be > 0");
     }
@@ -42,67 +52,48 @@ void fk_forward(std::uintptr_t q_all_ptr,
         throw std::invalid_argument("threads_per_block must be > 0");
     }
 
-    auto* q_all = reinterpret_cast<casadi_real*>(q_all_ptr);
-    auto* p1 = reinterpret_cast<casadi_real*>(p1_ptr);
-    auto* p2 = reinterpret_cast<casadi_real*>(p2_ptr);
-    auto* out_all = reinterpret_cast<casadi_real*>(out_ptr);
+    const KernelEntry& entry = find_kernel(function_name);
+    if (static_cast<int>(input_ptrs.size()) != entry.n_in) {
+        throw std::invalid_argument(
+            "input_ptrs size mismatch for " + function_name +
+            " (got " + std::to_string(input_ptrs.size()) +
+            ", expected " + std::to_string(entry.n_in) + ")");
+    }
+    if (static_cast<int>(output_ptrs.size()) != entry.n_out) {
+        throw std::invalid_argument(
+            "output_ptrs size mismatch for " + function_name +
+            " (got " + std::to_string(output_ptrs.size()) +
+            ", expected " + std::to_string(entry.n_out) + ")");
+    }
+
     cudaStream_t stream = stream_from_ptr(stream_ptr);
-
     const int blocks = (n_candidates + threads_per_block - 1) / threads_per_block;
-    fkeval_kernel<<<blocks, threads_per_block, 0, stream>>>(
-        q_all,
-        p1,
-        p2,
-        out_all,
-        n_candidates
-    );
 
-    throw_on_cuda_error(cudaGetLastError(), "fkeval_kernel launch failed");
+    entry.launch(input_ptrs.data(), output_ptrs.data(), blocks, threads_per_block, stream, n_candidates);
+    throw_on_cuda_error(cudaGetLastError(), "kernel launch failed");
+
     if (sync) {
-        throw_on_cuda_error(cudaStreamSynchronize(stream), "fkeval_kernel sync failed");
+        throw_on_cuda_error(cudaStreamSynchronize(stream), "kernel sync failed");
     }
 }
 
-void dynamics_forward(std::uintptr_t sim_x_ptr,
-                      std::uintptr_t sim_u_ptr,
-                      std::uintptr_t sim_p_all_ptr,
-                      std::uintptr_t dt_ptr,
-                      std::uintptr_t f_ext_ptr,
-                      std::uintptr_t sim_x_next_all_ptr,
-                      int n_candidates,
-                      int threads_per_block,
-                      std::uintptr_t stream_ptr,
-                      bool sync) {
-    if (n_candidates <= 0) {
-        throw std::invalid_argument("n_candidates must be > 0");
-    }
-    if (threads_per_block <= 0) {
-        throw std::invalid_argument("threads_per_block must be > 0");
+std::vector<KernelMetadata> list_kernels() {
+    std::size_t n = 0;
+    const KernelEntry* entries = get_kernel_registry(&n);
+
+    std::vector<KernelMetadata> out;
+    out.reserve(n);
+    for (std::size_t i = 0; i < n; ++i) {
+        KernelMetadata m;
+        m.function_name = entries[i].function_name;
+        m.kernel_name = entries[i].kernel_name;
+        m.batch_inputs = entries[i].batch_inputs;
+        m.input_nnz = entries[i].input_nnz;
+        m.output_nnz = entries[i].output_nnz;
+        out.push_back(std::move(m));
     }
 
-    auto* sim_x = reinterpret_cast<casadi_real*>(sim_x_ptr);
-    auto* sim_u = reinterpret_cast<casadi_real*>(sim_u_ptr);
-    auto* sim_p_all = reinterpret_cast<casadi_real*>(sim_p_all_ptr);
-    auto* dt = reinterpret_cast<const casadi_real*>(dt_ptr);
-    auto* f_ext = reinterpret_cast<casadi_real*>(f_ext_ptr);
-    auto* sim_x_next_all = reinterpret_cast<casadi_real*>(sim_x_next_all_ptr);
-    cudaStream_t stream = stream_from_ptr(stream_ptr);
-
-    const int blocks = (n_candidates + threads_per_block - 1) / threads_per_block;
-    Vnext_reg_kernel<<<blocks, threads_per_block, 0, stream>>>(
-        sim_x,
-        sim_u,
-        sim_p_all,
-        dt,
-        f_ext,
-        sim_x_next_all,
-        n_candidates
-    );
-
-    throw_on_cuda_error(cudaGetLastError(), "Vnext_reg_kernel launch failed");
-    if (sync) {
-        throw_on_cuda_error(cudaStreamSynchronize(stream), "Vnext_reg_kernel sync failed");
-    }
+    return out;
 }
 
 void device_synchronize() {

@@ -1,28 +1,28 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
+#include <vector>
 
 namespace casadi_on_gpu {
 
-void fk_forward(std::uintptr_t q_all_ptr,
-                std::uintptr_t p1_ptr,
-                std::uintptr_t p2_ptr,
-                std::uintptr_t out_ptr,
-                int n_candidates,
-                int threads_per_block,
-                std::uintptr_t stream_ptr,
-                bool sync);
+struct KernelMetadata {
+    std::string function_name;
+    std::string kernel_name;
+    std::vector<int> batch_inputs;
+    std::vector<int> input_nnz;
+    std::vector<int> output_nnz;
+};
 
-void dynamics_forward(std::uintptr_t sim_x_ptr,
-                      std::uintptr_t sim_u_ptr,
-                      std::uintptr_t sim_p_all_ptr,
-                      std::uintptr_t dt_ptr,
-                      std::uintptr_t f_ext_ptr,
-                      std::uintptr_t sim_x_next_all_ptr,
-                      int n_candidates,
-                      int threads_per_block,
-                      std::uintptr_t stream_ptr,
-                      bool sync);
+void launch(const std::string& function_name,
+            const std::vector<std::uintptr_t>& input_ptrs,
+            const std::vector<std::uintptr_t>& output_ptrs,
+            int n_candidates,
+            int threads_per_block,
+            std::uintptr_t stream_ptr,
+            bool sync);
+
+std::vector<KernelMetadata> list_kernels();
 
 void device_synchronize();
 
