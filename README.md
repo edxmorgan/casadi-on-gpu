@@ -12,7 +12,7 @@ You provide CasADi `.casadi` function files, generate CUDA kernel files (`.cu/.c
 
 The repository includes two example assets:
 
-1) `fk_eval.casadi`: forward kinematics for a 4-DoF manipulator (high-throughput batched evaluation).
+1) `fk_eval.casadi`: forward kinematics for a 4-DoF manipulator.
 2) `dynamics_eval.casadi`: stochastic forward dynamics model with sample parameters in `examples/assets/posterior.bin`.
 
 
