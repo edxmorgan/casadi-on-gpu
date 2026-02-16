@@ -13,30 +13,10 @@ set(CMAKE_CUDA_ARCHITECTURES 86)
 include_directories(
     src
     src/generated
-    demos
 )
 
-add_executable(run_kinematics_gpu
-    demos/kinematics_main.cpp
-    src/generated/fk_alpha.cu
-)
-
-set_property(TARGET run_kinematics_gpu PROPERTY CUDA_SEPARABLE_COMPILATION ON)
-
-add_executable(run_dynamics_gpu
-    demos/dynamics_main.cpp
-    src/generated/dynamics_blue.cu
-)
-
-set_property(TARGET run_dynamics_gpu PROPERTY CUDA_SEPARABLE_COMPILATION ON)
-target_compile_definitions(run_dynamics_gpu PRIVATE
-    POSTERIOR_BIN_PATH="${CMAKE_SOURCE_DIR}/src/posterior.bin"
-)
-
-set_source_files_properties(
-    demos/kinematics_main.cpp
-    demos/dynamics_main.cpp
-    PROPERTIES LANGUAGE CUDA
+file(GLOB GENERATED_CUDA_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_SOURCE_DIR}/src/generated/*.cu"
 )
 
 option(BUILD_PYTHON "Build Python bindings with pybind11" ON)
@@ -51,14 +31,13 @@ if (BUILD_PYTHON)
     pybind11_add_module(casadi_on_gpu
         src/python/casadi_on_gpu_bindings.cpp
         src/python/casadi_on_gpu_kernels.cu
-        src/generated/fk_alpha.cu
-        src/generated/dynamics_blue.cu
+        src/python/casadi_on_gpu_kernel_registry.cu
+        ${GENERATED_CUDA_SOURCES}
     )
 
     target_include_directories(casadi_on_gpu PRIVATE
         src
         src/generated
-        demos
         src/python
     )
 
@@ -77,17 +56,25 @@ if (BUILD_PYTHON)
             ${CMAKE_SOURCE_DIR}/tests/test_smoke.py
     )
 
-    # Install the Python extension into the prefix's site-packages.
-    # Use the user site-packages when installing under $HOME, otherwise fall back to system platlib.
-    execute_process(
-        COMMAND ${Python3_EXECUTABLE} -c
-                "import os, site, sysconfig; prefix=r'${CMAKE_INSTALL_PREFIX}'; user_site=site.getusersitepackages(); platlib=sysconfig.get_path('platlib'); base=sysconfig.get_config_var('base') or sysconfig.get_config_var('prefix') or os.path.dirname(os.path.dirname(os.path.dirname(platlib))); print(os.path.relpath(user_site, prefix) if user_site.startswith(prefix + os.sep) else os.path.relpath(platlib, base))"
-        OUTPUT_VARIABLE PYTHON_INSTALL_DIR
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
+    # Install destination for Python artifacts:
+    # - under scikit-build (pip), install directly into wheel platlib root
+    # - under manual CMake install, resolve site-packages relative to CMAKE_INSTALL_PREFIX
+    if (DEFINED SKBUILD OR DEFINED SKBUILD_PROJECT_NAME)
+        set(PYTHON_INSTALL_DIR ".")
+    else ()
+        execute_process(
+            COMMAND ${Python3_EXECUTABLE} -c
+                    "import os, site, sysconfig; prefix=r'${CMAKE_INSTALL_PREFIX}'; user_site=site.getusersitepackages(); platlib=sysconfig.get_path('platlib', vars={'base': prefix, 'platbase': prefix}); print(os.path.relpath(user_site, prefix) if user_site.startswith(prefix + os.sep) else os.path.relpath(platlib, prefix))"
+            OUTPUT_VARIABLE PYTHON_INSTALL_DIR
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+    endif ()
     set(PYTHON_INSTALL_DIR "${PYTHON_INSTALL_DIR}" CACHE PATH "Python site-packages install dir (relative to prefix)")
 
     install(TARGETS casadi_on_gpu
         LIBRARY DESTINATION ${PYTHON_INSTALL_DIR}
+    )
+    install(FILES src/generated/kernels_manifest.json
+        DESTINATION ${PYTHON_INSTALL_DIR}
     )
 endif ()

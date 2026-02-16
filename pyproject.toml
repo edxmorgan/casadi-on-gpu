@@ -1,0 +1,29 @@
+[build-system]
+requires = [
+  "scikit-build-core>=0.9",
+  "pybind11>=2.11",
+  "cmake>=3.18",
+  "ninja"
+]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "casadi-on-gpu"
+version = "0.1.0"
+description = "Manifest-driven runtime for CasADi-generated CUDA kernels"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+  {name = "edward.ix"}
+]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: C++",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: POSIX :: Linux"
+]
+
+[tool.scikit-build]
+cmake.source-dir = "."
+cmake.build-type = "Release"

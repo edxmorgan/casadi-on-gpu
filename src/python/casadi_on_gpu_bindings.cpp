@@ -1,44 +1,47 @@
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 #include "casadi_on_gpu_api.h"
 
 namespace py = pybind11;
 
+namespace {
+
+py::list as_python_kernel_list(const std::vector<casadi_on_gpu::KernelMetadata>& kernels) {
+    py::list out;
+    for (const auto& k : kernels) {
+        py::dict d;
+        d["function_name"] = k.function_name;
+        d["kernel_name"] = k.kernel_name;
+        d["batch_inputs"] = k.batch_inputs;
+        d["input_nnz"] = k.input_nnz;
+        d["output_nnz"] = k.output_nnz;
+        out.append(d);
+    }
+    return out;
+}
+
+}  // namespace
+
 PYBIND11_MODULE(casadi_on_gpu, m) {
-    m.doc() = "CasADi GPU kernels (FK + Dynamics) exposed via pybind11";
+    m.doc() = "Manifest-driven CasADi CUDA kernel launcher (PyTorch/CuPy pointer API)";
 
-    m.attr("FK_DOF") = 4;
-    m.attr("FK_OUT_DIM") = 6;
-    m.attr("DYNAMICS_STATE_DIM") = 12;
-    m.attr("DYNAMICS_CONTROL_DIM") = 6;
-    m.attr("DYNAMICS_PARAM_DIM") = 33;
-    m.attr("DYNAMICS_OUT_DIM") = 12;
+    m.attr("MANIFEST_FILENAME") = "kernels_manifest.json";
 
-    m.def("fk_forward",
-          &casadi_on_gpu::fk_forward,
-          py::arg("q_all_ptr"),
-          py::arg("p1_ptr"),
-          py::arg("p2_ptr"),
-          py::arg("out_ptr"),
+    m.def("launch",
+          &casadi_on_gpu::launch,
+          py::arg("function_name"),
+          py::arg("input_ptrs"),
+          py::arg("output_ptrs"),
           py::arg("n_candidates"),
           py::arg("threads_per_block") = 128,
           py::arg("stream_ptr") = 0,
           py::arg("sync") = true,
-          "Launch FK kernel. Pointers must be GPU addresses.");
+          "Launch a registered CasADi CUDA kernel by function name.");
 
-    m.def("dynamics_forward",
-          &casadi_on_gpu::dynamics_forward,
-          py::arg("sim_x_ptr"),
-          py::arg("sim_u_ptr"),
-          py::arg("sim_p_all_ptr"),
-          py::arg("dt_ptr"),
-          py::arg("f_ext_ptr"),
-          py::arg("sim_x_next_all_ptr"),
-          py::arg("n_candidates"),
-          py::arg("threads_per_block") = 128,
-          py::arg("stream_ptr") = 0,
-          py::arg("sync") = true,
-          "Launch dynamics kernel. Pointers (including dt_ptr) must be GPU addresses.");
+    m.def("list_kernels",
+          []() { return as_python_kernel_list(casadi_on_gpu::list_kernels()); },
+          "Return metadata for all registered kernels.");
 
     m.def("device_synchronize",
           &casadi_on_gpu::device_synchronize,
