@@ -89,7 +89,7 @@ def _parse_batch_override(raw: str, repo_root: Path) -> tuple[str, list[int]]:
     # Format: casadi_file=batch_inputs
     if "=" not in raw:
         raise ValueError(
-            f"Invalid --batch-override '{raw}'. Expected format: casadi_file=batch_inputs"
+            f"Invalid per-file batch mapping '{raw}'. Expected format: casadi_file=batch_inputs"
         )
     path_part, batch_part = raw.split("=", 1)
     resolved = _resolve_casadi_file(path_part.strip(), repo_root)
@@ -115,19 +115,17 @@ def _entries_from_simple_args(
     return entries
 
 
-def _default_entries(repo_root: Path) -> list[KernelEntryConfig]:
-    return [
-        KernelEntryConfig(
-            casadi_file=(repo_root / "examples/assets/fk_eval.casadi").resolve(),
-            unit_name="fk_eval",
-            batch_inputs=[0],
-        ),
-        KernelEntryConfig(
-            casadi_file=(repo_root / "examples/assets/dynamics_eval.casadi").resolve(),
-            unit_name="dynamics_eval",
-            batch_inputs=[2],
-        ),
-    ]
+def _collect_casadi_from_dirs(raw_dirs: list[str], repo_root: Path) -> list[str]:
+    files: list[str] = []
+    for raw_dir in raw_dirs:
+        d = Path(raw_dir)
+        if not d.is_absolute():
+            d = (repo_root / d).resolve()
+        if not d.is_dir():
+            raise ValueError(f"--casadi-dir '{raw_dir}' does not exist or is not a directory")
+        for p in sorted(d.glob("*.casadi")):
+            files.append(str(p))
+    return files
 
 
 def _prune_stale_generated_units(generated_dir: Path, entries: list[KernelEntryConfig]) -> None:
@@ -352,17 +350,32 @@ def main() -> None:
         "--batch-inputs",
         default="0",
         help=(
-            "Comma-separated batched input indices for --casadi mode. "
+            "Comma-separated batched input indices for --casadi/--casadi-dir mode. "
             "Default is '0'. Use empty string for none."
+        ),
+    )
+    parser.add_argument(
+        "--batch-inputs-for",
+        action="append",
+        default=[],
+        help=(
+            "Set batch inputs for a specific file in --casadi/--casadi-dir mode. "
+            "Format: casadi_file=batch_inputs (repeatable)."
         ),
     )
     parser.add_argument(
         "--batch-override",
         action="append",
         default=[],
+        help=argparse.SUPPRESS,
+    )
+    parser.add_argument(
+        "--casadi-dir",
+        action="append",
+        default=[],
         help=(
-            "Override batch inputs per file in --casadi mode. "
-            "Format: casadi_file=batch_inputs (repeatable)."
+            "Directory to scan for .casadi files (non-recursive). "
+            "Repeat for multiple directories."
         ),
     )
     parser.add_argument(
@@ -402,21 +415,31 @@ def main() -> None:
 
     repo_root = Path(__file__).resolve().parent.parent
 
-    if args.entry and args.casadi:
-        raise ValueError("Use either --entry (advanced) or --casadi (simple), not both.")
+    try:
+        if args.entry and (args.casadi or args.casadi_dir):
+            raise ValueError(
+                "Use either --entry (advanced) or --casadi/--casadi-dir (simple), not both."
+            )
 
-    if args.entry:
-        entries = [_parse_entry(e, repo_root) for e in args.entry]
-    elif args.casadi:
-        batch_inputs_default = _parse_batch_inputs(args.batch_inputs)
-        batch_overrides = dict(
-            _parse_batch_override(raw, repo_root) for raw in args.batch_override
-        )
-        entries = _entries_from_simple_args(
-            args.casadi, batch_inputs_default, batch_overrides, repo_root
-        )
-    else:
-        entries = _default_entries(repo_root)
+        if args.entry:
+            entries = [_parse_entry(e, repo_root) for e in args.entry]
+        else:
+            casadi_files = list(args.casadi)
+            casadi_files.extend(_collect_casadi_from_dirs(args.casadi_dir, repo_root))
+            if not casadi_files:
+                raise ValueError(
+                    "No kernels specified. Provide --casadi <file>, --casadi-dir <dir>, or --entry <spec>."
+                )
+            batch_inputs_default = _parse_batch_inputs(args.batch_inputs)
+            raw_batch_mappings = list(args.batch_inputs_for) + list(args.batch_override)
+            batch_overrides = dict(
+                _parse_batch_override(raw, repo_root) for raw in raw_batch_mappings
+            )
+            entries = _entries_from_simple_args(
+                casadi_files, batch_inputs_default, batch_overrides, repo_root
+            )
+    except ValueError as exc:
+        parser.error(str(exc))
 
     generated_dir = (
         args.generated_dir if args.generated_dir.is_absolute() else (repo_root / args.generated_dir)
