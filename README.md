@@ -17,7 +17,7 @@ The repository includes two example assets:
 
 
 
-## **Prereq: Build CasADi (CUDA codegen support)**
+## **Prereq: Build CasADi (with CUDA codegen support)**
 
 The flags below are for building the upstream `casadi` repository, not this `casadi-on-gpu` repository.
 
