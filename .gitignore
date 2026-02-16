@@ -41,3 +41,18 @@ __pycache__/
 *.dwo
 
 build/
+
+# CMake / local build artifacts
+_skbuild/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+Makefile
+Testing/
+
+# Auto-generated kernel/runtime artifacts
+src/generated/*.cu
+src/generated/*.cuh
+src/generated/kernels_manifest.json
+src/python/casadi_on_gpu_kernel_registry.cu
