@@ -34,31 +34,21 @@ sudo make install
 ## **Generate kernels**
 Example `.casadi` assets are stored in `examples/assets/`. Generated `.cu/.cuh` files are written to `src/generated/`.
 
-After generating kernels, create runtime metadata + dispatch registry:
+Create runtime metadata + dispatch registry by passing your `.casadi` input(s):
 ```bash
-./tools/generate_manifest_and_registry.py
+./tools/generate_manifest_and_registry.py --casadi path/to/my_model.casadi --batch-inputs 0,2
 ```
 This emits:
 - `src/generated/kernels_manifest.json`
 - `src/python/casadi_on_gpu_kernel_registry.cu`
 
-To add custom kernels with a simple CLI:
+Multiple files (explicit):
 ```bash
 ./tools/generate_manifest_and_registry.py \
   --casadi examples/assets/fk_eval.casadi \
   --casadi examples/assets/dynamics_eval.casadi \
-  --batch-override examples/assets/fk_eval.casadi=0 \
-  --batch-override examples/assets/dynamics_eval.casadi=2
-```
-Most common single-kernel case:
-```bash
-./tools/generate_manifest_and_registry.py --casadi path/to/my_model.casadi --batch-inputs 0,2
-```
-
-Advanced mode (full control) is still available:
-```bash
-./tools/generate_manifest_and_registry.py \
-  --entry path/to/my_model.casadi:my_model_unit:0,2[:kernel_name[:device_name]]
+  --batch-inputs-for examples/assets/fk_eval.casadi=0 \
+  --batch-inputs-for examples/assets/dynamics_eval.casadi=2
 ```
 
 ## **Build casadi-on-gpu**
