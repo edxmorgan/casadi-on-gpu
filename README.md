@@ -32,13 +32,14 @@ sudo make install
 ```
 
 ## **Generate kernels**
-Example `.casadi` assets are stored in `examples/assets/`. Generated `.cu/.cuh` files are written to `src/generated/`.
+Example `.casadi` assets are stored in `examples/assets/`.
 
 Create runtime metadata + dispatch registry by passing your `.casadi` input(s):
 ```bash
 ./tools/generate_manifest_and_registry.py --casadi path/to/my_model.casadi --batch-inputs 0,2
 ```
 This emits:
+- `src/generated/*.cu/*.cuh`
 - `src/generated/kernels_manifest.json`
 - `src/python/casadi_on_gpu_kernel_registry.cu`
 
