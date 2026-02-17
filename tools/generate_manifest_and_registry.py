@@ -275,6 +275,44 @@ def _generate_registry_source(manifest: dict[str, Any]) -> str:
         kernel_name = k["kernel_name"]
         n_in = len(k["inputs"])
         n_out = len(k["outputs"])
+        batch_inputs = set(int(i) for i in k["batch_inputs"])
+        input_nnz = [int(i["nnz"]) for i in k["inputs"]]
+        output_nnz = [int(i["nnz"]) for i in k["outputs"]]
+        sz_arg = int(k["work"]["sz_arg"])
+        sz_res = int(k["work"]["sz_res"])
+        sz_iw = int(k["work"]["sz_iw"])
+        sz_w = int(k["work"]["sz_w"])
+
+        dispatch_kernel = f"dispatch_{fn}_kernel"
+        kernel_args = [f"const casadi_real* i{i}_in" for i in range(n_in)]
+        kernel_args.extend(f"casadi_real* o{i}_out" for i in range(n_out))
+        kernel_args.append("int n_candidates")
+
+        lines.append(f"CUDA_GLOBAL void {dispatch_kernel}({', '.join(kernel_args)}) {{")
+        lines.append("  int idx = blockIdx.x * blockDim.x + threadIdx.x;")
+        lines.append("  if (idx >= n_candidates) return;")
+
+        for i in range(n_in):
+            if i in batch_inputs:
+                lines.append(
+                    f"  const casadi_real* i{i} = i{i}_in + {input_nnz[i]} * idx;"
+                )
+            else:
+                lines.append(f"  const casadi_real* i{i} = i{i}_in;")
+        for i in range(n_out):
+            lines.append(f"  casadi_real* o{i} = o{i}_out + {output_nnz[i]} * idx;")
+
+        lines.append(f"  const casadi_real* arg_local[{max(sz_arg, n_in, 1)}] = {{0}};")
+        lines.append(f"  casadi_real* res_local[{max(sz_res, n_out, 1)}] = {{0}};")
+        for i in range(n_in):
+            lines.append(f"  arg_local[{i}] = i{i};")
+        for i in range(n_out):
+            lines.append(f"  res_local[{i}] = o{i};")
+        lines.append(f"  casadi_int iw[{max(sz_iw, 1)}];")
+        lines.append(f"  casadi_real w[{max(sz_w, 1)}];")
+        lines.append(f"  {fn}(arg_local, res_local, iw, w, 0);")
+        lines.append("}")
+        lines.append("")
 
         launch_name = f"launch_{fn}"
         lines.append(
@@ -292,9 +330,7 @@ def _generate_registry_source(manifest: dict[str, Any]) -> str:
         call_args = [f"i{i}" for i in range(n_in)] + [f"o{i}" for i in range(n_out)] + [
             "n_candidates"
         ]
-        lines.append(
-            f"  {kernel_name}<<<blocks, threads_per_block, 0, stream>>>({', '.join(call_args)});"
-        )
+        lines.append(f"  {dispatch_kernel}<<<blocks, threads_per_block, 0, stream>>>({', '.join(call_args)});")
         lines.append("}")
         lines.append("")
 
