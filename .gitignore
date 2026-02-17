@@ -56,3 +56,6 @@ src/generated/*.cu
 src/generated/*.cuh
 src/generated/kernels_manifest.json
 src/python/casadi_on_gpu_kernel_registry.cu
+
+rollout_sim.ipynb
+rollout_sim.casadi
