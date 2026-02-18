@@ -59,3 +59,4 @@ src/python/casadi_on_gpu_kernel_registry.cu
 
 rollout_sim.ipynb
 rollout_sim.casadi
+rollout_sim_README.md
