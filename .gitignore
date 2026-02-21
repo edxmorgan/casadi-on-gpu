@@ -57,10 +57,10 @@ src/generated/*.cuh
 src/generated/kernels_manifest.json
 src/python/casadi_on_gpu_kernel_registry.cu
 
-# examples/
-# !dynamic_example.ipynb
-# !kinematics_example.ipynb
+examples/
+!dynamic_example.ipynb
+!kinematics_example.ipynb
 
-# !dynamics_eval.casadi
-# !fk_eval.casadi
-# !posterior.bin
+!dynamics_eval.casadi
+!fk_eval.casadi
+!posterior.bin

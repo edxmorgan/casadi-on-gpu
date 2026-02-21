@@ -1,3 +1,5 @@
+"""Author: edward morgan."""
+
 import sys
 
 

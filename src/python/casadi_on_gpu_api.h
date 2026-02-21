@@ -1,5 +1,7 @@
 #pragma once
 
+// Author: edward morgan
+
 #include <cstdint>
 #include <string>
 #include <vector>

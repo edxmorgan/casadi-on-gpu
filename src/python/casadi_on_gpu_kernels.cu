@@ -1,3 +1,5 @@
+// Author: edward morgan
+
 #include "casadi_on_gpu_api.h"
 
 #include <stdexcept>

@@ -1,5 +1,7 @@
 #pragma once
 
+// Author: edward morgan
+
 #include <cstddef>
 #include <cstdint>
 #include <string>
