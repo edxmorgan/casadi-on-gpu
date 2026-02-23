@@ -18,6 +18,8 @@ from typing import Any
 
 import casadi as ca
 
+HEAP_WORKSPACE_THRESHOLD_SLOTS = 65536
+
 DEFAULT_AUTHOR = ""
 
 
@@ -210,6 +212,7 @@ def _generate_and_collect(
                         "batch_inputs": e.batch_inputs,
                         "kernel_name": kernel_name,
                         "device_name": device_name,
+                        "external_workspace": int(f.sz_w()) >= HEAP_WORKSPACE_THRESHOLD_SLOTS,
                     }
                 },
             },
@@ -290,6 +293,8 @@ def _generate_registry_source(manifest: dict[str, Any], author: str) -> str:
     lines.append("#include \"casadi_on_gpu_kernel_registry.h\"")
     for header in include_headers:
         lines.append(f"#include \"{header}\"")
+    lines.append("#include <stdexcept>")
+    lines.append("#include <string>")
     lines.append("")
     lines.append("namespace casadi_on_gpu {")
     lines.append("namespace {")
@@ -306,10 +311,13 @@ def _generate_registry_source(manifest: dict[str, Any], author: str) -> str:
         sz_res = int(k["work"]["sz_res"])
         sz_iw = int(k["work"]["sz_iw"])
         sz_w = int(k["work"]["sz_w"])
+        use_heap_workspace = sz_w >= HEAP_WORKSPACE_THRESHOLD_SLOTS
 
         dispatch_kernel = f"dispatch_{fn}_kernel"
         kernel_args = [f"const casadi_real* i{i}_in" for i in range(n_in)]
         kernel_args.extend(f"casadi_real* o{i}_out" for i in range(n_out))
+        if use_heap_workspace:
+            kernel_args.append("casadi_real* workspace_pool")
         kernel_args.append("int n_candidates")
 
         lines.append(f"CUDA_GLOBAL void {dispatch_kernel}({', '.join(kernel_args)}) {{")
@@ -333,7 +341,12 @@ def _generate_registry_source(manifest: dict[str, Any], author: str) -> str:
         for i in range(n_out):
             lines.append(f"  res_local[{i}] = o{i};")
         lines.append(f"  casadi_int iw[{max(sz_iw, 1)}];")
-        lines.append(f"  casadi_real w[{max(sz_w, 1)}];")
+        if use_heap_workspace:
+            lines.append(
+                f"  casadi_real* w = workspace_pool + static_cast<std::size_t>({sz_w}) * static_cast<std::size_t>(idx);"
+            )
+        else:
+            lines.append(f"  casadi_real w[{max(sz_w, 1)}];")
         lines.append(f"  {fn}(arg_local, res_local, iw, w, 0);")
         lines.append("}")
         lines.append("")
@@ -354,7 +367,32 @@ def _generate_registry_source(manifest: dict[str, Any], author: str) -> str:
         call_args = [f"i{i}" for i in range(n_in)] + [f"o{i}" for i in range(n_out)] + [
             "n_candidates"
         ]
+        if use_heap_workspace:
+            lines.append(
+                f"  const std::size_t workspace_elems = static_cast<std::size_t>({sz_w}) * static_cast<std::size_t>(n_candidates);"
+            )
+            lines.append("  const std::size_t workspace_bytes = workspace_elems * sizeof(casadi_real);")
+            lines.append("  casadi_real* workspace_pool = nullptr;")
+            lines.append(
+                "  cudaError_t alloc_err = cudaMallocAsync(reinterpret_cast<void**>(&workspace_pool), workspace_bytes, stream);"
+            )
+            lines.append("  if (alloc_err != cudaSuccess) {")
+            lines.append(
+                f"    throw std::runtime_error(std::string(\"{fn} workspace allocation failed: \") + cudaGetErrorString(alloc_err));"
+            )
+            lines.append("  }")
+            call_args = [f"i{i}" for i in range(n_in)] + [f"o{i}" for i in range(n_out)] + [
+                "workspace_pool",
+                "n_candidates",
+            ]
         lines.append(f"  {dispatch_kernel}<<<blocks, threads_per_block, 0, stream>>>({', '.join(call_args)});")
+        if use_heap_workspace:
+            lines.append("  cudaError_t free_err = cudaFreeAsync(workspace_pool, stream);")
+            lines.append("  if (free_err != cudaSuccess) {")
+            lines.append(
+                f"    throw std::runtime_error(std::string(\"{fn} workspace free failed: \") + cudaGetErrorString(free_err));"
+            )
+            lines.append("  }")
         lines.append("}")
         lines.append("")
 
@@ -364,13 +402,17 @@ def _generate_registry_source(manifest: dict[str, Any], author: str) -> str:
         kernel_name = k["kernel_name"]
         n_in = len(k["inputs"])
         n_out = len(k["outputs"])
+        sz_arg = int(k["work"]["sz_arg"])
+        sz_res = int(k["work"]["sz_res"])
+        sz_iw = int(k["work"]["sz_iw"])
+        sz_w = int(k["work"]["sz_w"])
         batch = ", ".join(str(i) for i in k["batch_inputs"])
         in_nnz = ", ".join(str(int(i["nnz"])) for i in k["inputs"])
         out_nnz = ", ".join(str(int(i["nnz"])) for i in k["outputs"])
 
         lines.append(
             "  {"
-            + f"\"{fn}\", \"{kernel_name}\", {n_in}, {n_out}, "
+            + f"\"{fn}\", \"{kernel_name}\", {n_in}, {n_out}, {sz_arg}, {sz_res}, {sz_iw}, {sz_w}, "
             + "{"
             + batch
             + "}, {"
