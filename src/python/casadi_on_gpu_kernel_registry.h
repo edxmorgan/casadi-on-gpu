@@ -23,6 +23,10 @@ struct KernelEntry {
     const char* kernel_name;
     int n_in;
     int n_out;
+    int sz_arg;
+    int sz_res;
+    int sz_iw;
+    int sz_w;
     std::vector<int> batch_inputs;
     std::vector<int> input_nnz;
     std::vector<int> output_nnz;
