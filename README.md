@@ -31,6 +31,13 @@ make -j8
 sudo make install
 ```
 
+
+### **Clone this repo**
+```bash
+git clone https://github.com/edxmorgan/casadi-on-gpu
+cd casadi-on-gpu
+```
+
 ## **Generate kernels**
 Example `.casadi` assets are stored in `examples/assets/`.
 
